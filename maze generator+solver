@@ -1,0 +1,332 @@
+import processing.core.*; 
+import processing.data.*; 
+import processing.event.*; 
+import processing.opengl.*; 
+
+import java.util.HashMap; 
+import java.util.ArrayList; 
+import java.io.File; 
+import java.io.BufferedReader; 
+import java.io.PrintWriter; 
+import java.io.InputStream; 
+import java.io.OutputStream; 
+import java.io.IOException; 
+
+public class labyrinth_7 extends PApplet {
+
+/*
+ *            author : Felix 
+ */
+
+//set your values
+int grosse = 10 ;     //how many cells in one direction 
+int space = 30;       //how big are the cells
+int  startCell[] = new int[] {   0,4   };      //put start  cell y,x in (starting with 0)
+int targetCell[] = new int[] {  0,0  };      //put target cell y,x in (starting with 0)
+
+
+//change nothing
+float averageSolution_F;
+int averageSolution_I = 0;
+
+int switchVar = 1;
+
+labyrinth lab1;
+
+public void setup() {
+  background(255);
+  
+  //grosse=width/space;    //if you want full-window maze
+
+  lab1 = new labyrinth(width/2, height/2, grosse, space,startCell,targetCell);
+}
+
+public void draw() {
+}
+
+public void mouseClicked() {
+  //grosse=width/space;    //if you want full-window maze
+  
+  if (mouseButton == LEFT) {
+    lab1 = new labyrinth(width/2, height/2, grosse, space,startCell,targetCell);
+    switchVar = 1;
+  }
+  else if (mouseButton == RIGHT) {
+    switchVar ++;
+    background(255);
+    lab1.drawGrid();
+    lab1.drawOutlines();
+    
+    
+    if(switchVar % 2 == 0) lab1.drawSolution();
+  }
+}
+public class labyrinth {
+  int x, y, rc, sp;
+  
+  int path [][] = new int[0][4];
+  boolean freeFields[][];
+  int pathFields[][];
+  int solutionPath[][];
+
+
+
+
+  labyrinth(int X, int Y, int RC, int SP, int[] sCell, int[] tCell) {
+    path  = new int[0][4];
+    solutionPath  = new int[0][4];
+
+
+
+
+
+    x = X;
+    y = Y;
+    rc = RC;
+    sp= SP;
+    freeFields = new boolean[rc][rc];
+    pathFields = new int[0][2];
+    for (int r = 0; r < RC; r++) {
+      for (int c = 0; c < RC; c++) {
+        freeFields[r][c] = true;
+      }
+    }
+
+    
+
+    generatePaths();
+    drawPath();
+    drawOutlines();
+    findSolution(sCell[0], sCell[1], tCell[0], tCell[1]);
+    
+    println("");
+    println("size: "+ rc +"*"+rc+" = "+rc*rc);
+    println("path.length: "+path.length);
+    println("solution.length: "+solutionPath.length);
+    println("averageSolution: "+averageSolution_F);
+  }
+
+  public void generatePaths() {
+
+    int c = PApplet.parseInt(random(0, rc));
+    int r = PApplet.parseInt(random(0, rc));
+
+    pathFields = (int[][]) expand (pathFields, pathFields.length + 1);
+    pathFields[pathFields.length-1]= new int[] {r, c};
+
+    searchPath(r, c);
+    for (int i = 0; i < 1; i+= 0) {
+
+      int sP = PApplet.parseInt(random(0, pathFields.length));
+
+
+
+      searchPath(pathFields[sP][0], pathFields[sP][1]);
+
+      if (pathFields.length >= rc*rc) {
+        i = 1;
+      }
+    }
+  }
+
+
+  public void searchPath(int sR, int sC) {
+    freeFields[sR][sC] = false;
+    int R = sR;
+    int C = sC;
+    int Ro = sR;
+    int Co = sC;
+
+    for ( int i = 0; i < 1; i+=0) {
+
+      int dir = PApplet.parseInt(random(0, 4));
+      if (dir == 0) R--;
+      if (dir == 1) C++;
+      if (dir == 2) R++;
+      if (dir == 3) C--;
+
+
+      if ((R > -1) && (C > -1) && (R < rc) && (C < rc) ) {
+
+        if (freeFields[R][C] == true) {
+          addPath(R, C, Ro, Co);
+          Ro = R;
+          Co = C;
+        } else {
+
+          i = 1;
+        }
+      } else {
+        i = 1;
+      }
+    }
+  }
+
+  public void drawPath() {
+    stroke(0);
+    background(255);
+    drawGrid();
+    fill(50);
+    strokeWeight(0.1f);
+
+    for ( int i = 0; i < path.length; i++) {
+      //line(x+path[i][0]*sp-(rc*sp/2-sp/2), y+path[i][1]*sp-(rc*sp/2-sp/2), x+path[i][2]*sp-(rc*sp/2-sp/2), y+path[i][3]*sp-(rc*sp/2-sp/2));
+    }
+  }
+
+  public void drawGrid() {
+    strokeWeight(3);
+    stroke(0);
+    
+
+    fill(255);
+    rect(x-rc*sp/2, y-rc*sp/2, rc*sp, rc*sp);
+    fill(0);
+    //circle(x, y, 2);
+    strokeWeight(0.01f);
+    for (int i = 0; i < rc-1; i++) {
+      line(x+i*sp-(rc*sp/2-sp), y+rc*sp/2, x+i*sp-(rc*sp/2-sp), y+rc*-1*sp/2);
+      line(x+rc*sp/2, y+i*sp-(rc*sp/2-sp), x+rc*-1*sp/2, y+i*sp-(rc*sp/2-sp));
+    }
+
+
+    
+    for ( int i = 0; i < pathFields.length; i++) {
+      fill(0);
+      //circle(x+pathFields[i][0]*sp-(rc*sp/2-sp/2), y+pathFields[i][1]*sp-(rc*sp/2-sp/2), 1);
+    }
+  }
+
+  public void addPath(int r1, int c1, int r2, int c2) {
+    freeFields[r1][c1] = false;
+    freeFields[r2][c2] = false;
+
+    path = (int[][]) expand (path, path.length + 1);
+    path[path.length-1]= new int[] {r1, c1, r2, c2};
+
+    pathFields = (int[][]) expand (pathFields, pathFields.length + 1);
+    pathFields[pathFields.length-1]= new int[] {r1, c1};
+  }
+
+  public void drawOutlines() {
+    for (int r = 0; r < rc; r++) {
+      for (int c= 0; c < rc -1; c++) {
+        if (checkPath(r, c, r, c+1)==false) {
+          stroke(0);
+          strokeWeight(3);
+          line(x+c*sp-(rc*sp/2-sp), y+r*sp-(rc*sp/2-sp), x+c*sp-(rc*sp/2-sp), y+r*sp-(rc*sp/2));
+        }
+      }
+    }
+    for (int r = 0; r < rc -1; r++) {
+      for (int c= 0; c < rc; c++) {
+        if (checkPath(r, c, r+1, c)==false) {
+          stroke(0);
+          strokeWeight(3);
+          line(x+c*sp-(rc*sp/2-sp), y+r*sp-(rc*sp/2-sp), x+c*sp-(rc*sp/2), y+r*sp-(rc*sp/2-sp));
+        }
+      }
+    }
+  }
+
+
+  public boolean checkPath ( int c1, int r1, int c2, int r2) {
+    for ( int i = 0; i < path.length; i ++) {
+
+      if ((path[i][0] == r1) && (path[i][1] == c1) && (path[i][2] == r2) && (path[i][3] == c2)  ) {
+        return true;
+      } else if ((path[i][0] == r2) && (path[i][1] == c2) && (path[i][2] == r1) && (path[i][3] == c1)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public int checkSolutionPath ( int c1, int r1, int c2, int r2) {
+    for ( int i = 0; i < solutionPath.length; i ++) {
+
+      if ((solutionPath[i][0] == r1) && (solutionPath[i][1] == c1) && (solutionPath[i][2] == r2) && (solutionPath[i][3] == c2)  ) {
+        return i;
+      } else if ((solutionPath[i][0] == r2) && (solutionPath[i][1] == c2) && (solutionPath[i][2] == r1) && (solutionPath[i][3] == c1)) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  public void findSolution(int sR, int sC, int tR, int tC) {
+
+    int lastDir = 0;
+
+    int r = sR;
+    int c = sC;
+    int ro = sR;
+    int co = sC;
+    for ( int i = 0; i < 1; i+= 0) {
+
+      for (int dir = 5; dir > 1; dir--) {
+
+        if (((lastDir+dir) % 4) == 1) {
+          c = co +1;
+          r = ro;
+        }
+        if (((lastDir+dir) % 4) == 3) {
+          c = co -1;
+          r = ro;
+        }
+        if (((lastDir+dir) % 4) == 0) {
+          r = ro -1;
+          c = co;
+        }
+        if (((lastDir+dir) % 4) == 2) {
+          r = ro +1;
+          c = co;
+        }
+
+
+        if (checkPath(ro, co, r, c) == true) {
+          int checkSolution = checkSolutionPath(ro, co, r, c);
+          if (checkSolution == -1) {
+            solutionPath = (int[][]) expand (solutionPath, solutionPath.length + 1);
+            solutionPath[solutionPath.length-1]= new int[] {co, ro, c, r};
+          } else {
+
+            solutionPath = (int[][]) expand (solutionPath, solutionPath.length - 1);
+          }
+          ro = r;
+          co = c;
+
+          lastDir = (lastDir+dir) % 4;
+          dir = 1;
+        } else {
+        }
+        if ((ro == tR)&&( co == tC)) {
+          i = 1;
+        }
+      }
+    }
+    averageSolution_F = (averageSolution_F*averageSolution_I+solutionPath.length)/(averageSolution_I+1);
+    averageSolution_I++;
+  }
+
+  public void drawSolution() {
+    stroke(0, 255, 0);
+    fill(0, 255, 0);
+    strokeWeight(2);
+    circle(x+solutionPath[0][0]*sp-(rc*sp/2-sp/2),y+solutionPath[0][1]*sp-(rc*sp/2-sp/2),10);
+    circle(x+solutionPath[solutionPath.length-1][2]*sp-(rc*sp/2-sp/2),y+solutionPath[solutionPath.length-1][3]*sp-(rc*sp/2-sp/2),10);
+    for ( int i = 0; i < solutionPath.length; i ++) {
+      line(x+solutionPath[i][0]*sp-(rc*sp/2-sp/2), y+solutionPath[i][1]*sp-(rc*sp/2-sp/2), x+solutionPath[i][2]*sp-(rc*sp/2-sp/2), y+solutionPath[i][3]*sp-(rc*sp/2-sp/2));
+    }
+  }
+}
+  public void settings() {  size(1000, 1000); }
+  static public void main(String[] passedArgs) {
+    String[] appletArgs = new String[] { "labyrinth_7" };
+    if (passedArgs != null) {
+      PApplet.main(concat(appletArgs, passedArgs));
+    } else {
+      PApplet.main(appletArgs);
+    }
+  }
+}
