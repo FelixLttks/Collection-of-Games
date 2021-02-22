@@ -1,0 +1,423 @@
+import processing.core.*; 
+import processing.data.*; 
+import processing.event.*; 
+import processing.opengl.*; 
+
+import java.util.HashMap; 
+import java.util.ArrayList; 
+import java.io.File; 
+import java.io.BufferedReader; 
+import java.io.PrintWriter; 
+import java.io.InputStream; 
+import java.io.OutputStream; 
+import java.io.IOException; 
+
+public class wordSalad_1 extends PApplet {
+
+wordsaladDraw wordsaladDraw_1;
+filler filler_1;
+wordSetter wordSetter_1;
+arrayPrinter arrayPrinter_1;
+
+int cells = 10;
+int size = 400;
+String[] words = new String[]{"computer"};
+
+
+char[] letters = new char[cells*cells];
+
+public void setup(){
+  
+  background(255);
+  
+  
+  
+  mouseClicked();
+  
+}
+
+
+public void draw(){
+}
+
+public void mouseClicked(){
+  background(255);
+  for(int i = 0; i < letters.length ; i++){
+    letters[i] = '0';
+  }
+  for( int i = 0 ; i < words.length ; i++){
+    words[i] = words[i].toUpperCase();
+  }
+  
+  
+  wordsaladDraw_1 = new wordsaladDraw();
+  filler_1 = new filler();
+  wordSetter_1 = new wordSetter();
+  arrayPrinter_1 = new arrayPrinter();
+  
+  
+  letters = wordSetter_1.setWords(words,cells);
+  letters = filler_1.fillLetters(letters);
+  wordsaladDraw_1.drawWordsalad(letters,size);
+  arrayPrinter_1.drawOneDArray(words);
+  
+  println(">>finished");
+  
+}
+class arrayPrinter {
+
+  arrayPrinter() {
+  }
+
+
+  public void printOneDArray (int[] array) {
+    for (int i = 0; i < array.length; i++) {
+      print(array[i]+" ");
+    }
+  }
+
+  public void printTwoDArray (int[][] array) {
+    for (int r = 0; r < array.length; r++) {
+      for (int c = 0; c < array[0].length; c++) {
+        print(array[r][c]+" ");
+      }
+      println("");
+    }
+  }
+
+  public void drawOneDArray (String[] array) {
+    int x = 0;
+    for (int c = 0; c < ceil(array.length/2); c++) {
+      for (int i = 0; i < 3; i++) {
+        textSize(20);
+        if (c*3+i < array.length) {
+          text(array[c*3+i], 50 + x, 40 + i* 25);
+        }
+      }
+      x +=  140;
+    }
+  }
+}
+
+class filler{
+  filler(){
+  }
+  
+  
+  public char[] fillLetters(char[] new_letters ){
+    char[] ABC = new char[]{'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
+    char[] letters = new char[new_letters.length];
+    
+    letters = new_letters;
+    
+    for ( int i = 0; i < letters.length ; i++){
+      if(letters[i] == '0'){
+        letters[i] = ABC[PApplet.parseInt(random(0,ABC.length))];
+      }
+    }
+    
+    
+    return letters;
+  }
+  
+  
+  
+}
+class stringToChar{
+  
+  stringToChar(){
+  }
+  
+  
+  
+  public char[] stringToChar (String string){
+    char[] char_1 = new char[string.length()];
+    for( int i = 0; i < char_1.length ; i++){
+      char_1[i] = string.charAt(i);
+    }
+    return char_1;
+  }
+  
+  
+  
+}
+class wordSetter {
+
+  int[][] orderCell;
+  int[][] orderDir;
+  String[] words;
+  char[] letters;
+
+  int cells;
+
+  wordSetter() {
+  }
+
+
+  public char[] setWords (String[] new_words, int new_cells) {
+    cells = new_cells;
+    words = new_words;
+
+    generateOrder(words.length);
+    printOrders();
+
+
+    letters = new char[cells*cells];
+    for (int i = 0; i < letters.length; i++) {
+      letters[i] = '0';
+    }
+
+    int[][] solution = new int[words.length][2];    // {Cell,Dir}
+
+
+
+    arrayPrinter arrayPrinter_1 = new arrayPrinter();
+
+    int word = 0;
+    while (word < words.length) {
+
+      if (word < 0) {
+
+        println("");
+        println("ERROR : found no solution for words");
+        println("");
+        return new char[0];
+      }
+
+
+      print(words[word] + ": ");
+
+      int[] firstPos = findFirstPos(word,solution[word][0],solution[word][1]);
+      arrayPrinter_1.printOneDArray(firstPos);
+      println("");
+
+
+
+      if (firstPos.length != 0) {
+
+        solution[word] = new int[]{firstPos[0], firstPos[1]};
+
+
+
+        int sPos = orderCell[word][firstPos[0]];
+        int dir = orderDir[word][firstPos[1]];
+
+        if (dir == 0) {
+          for ( int c = sPos; c > sPos - words[word].length()*cells; c -= cells) {
+            letters[c] = words[word].charAt((sPos - c)/cells);
+          }
+        }
+
+        if (dir == 1) {
+          for ( int c = sPos; c < sPos + words[word].length(); c++) {
+            letters[c] = words[word].charAt(c-sPos);
+          }
+        }
+
+        if (dir == 2) {
+          for ( int c = sPos; c < sPos + words[word].length()*cells; c += cells) {
+            letters[c] = words[word].charAt((c - sPos)/cells);
+          }
+        }
+        if (dir == 3) {
+          for ( int c = sPos; c > sPos - words[word].length(); c--) {
+            letters[c] = words[word].charAt(sPos-c);
+          }
+        }
+        word++;
+      } else {
+
+        println("found no solution for: " + words[word]);
+        solution[word][0] = 0;
+        solution[word][1] = 0;
+        
+        int sPos = orderCell[word-1][solution[word-1][0]];
+        int dir = orderDir[word-1][solution[word-1][1]];
+
+        if (dir == 0) {
+          for ( int c = sPos; c > sPos - words[word-1].length()*cells; c -= cells) {
+            letters[c] = '0';
+          }
+        }
+
+        if (dir == 1) {
+          for ( int c = sPos; c < sPos + words[word-1].length(); c++) {
+            letters[c] = '0';
+          }
+        }
+
+        if (dir == 2) {
+          for ( int c = sPos; c < sPos + words[word-1].length()*cells; c += cells) {
+            letters[c] = '0';
+          }
+        }
+        if (dir == 3) {
+          for ( int c = sPos; c > sPos - words[word-1].length(); c--) {
+            letters[c] = '0';
+          }
+        }
+        word--;
+      }
+    }
+    arrayPrinter_1.printTwoDArray(solution);
+    return letters;
+  }
+
+
+  public int[] findFirstPos(int word, int sPos , int new_sDir) {
+    int sDir = new_sDir+1;
+    for (int pos = sPos; pos < cells*cells; pos++) {
+      for ( int dir = sDir; dir < 4; dir++) {
+        boolean possibleWord = checkWord(orderCell[word][pos], word, orderDir[word][dir]); 
+        if (possibleWord == true) {
+          return new int[]{pos, dir};
+        }
+      }
+      sDir = 0;
+    }
+
+    return new int[0];
+  }
+
+
+  public boolean checkWord( int Cell, int wordN, int dir) {
+    if (dir == 0) {
+      if (Cell - (words[wordN].length() - 1 ) * cells < 0) {
+        return false;
+      }
+      for (int i = 0; i < words[wordN].length(); i++) {
+        if ( letters[Cell - i*cells] != '0' && letters[Cell - i*cells] != words[wordN].charAt(i)) {
+          return false;
+        }
+      }
+    }
+
+    if (dir == 1) {
+      if (cells - Cell % cells  < words[wordN].length()) {
+        return false;
+      }
+      for (int i = 0; i < words[wordN].length(); i++) {
+        if ( letters[Cell + i] != '0' && letters[Cell + i] != words[wordN].charAt(i)) {
+          return false;
+        }
+      }
+    }
+
+    if (dir == 2) {
+      if (Cell + (words[wordN].length() - 1 ) * cells > cells * cells - 1) {
+        return false;
+      }
+      for (int i = 0; i < words[wordN].length(); i++) {
+        if ( letters[Cell + i*cells] != '0' && letters[Cell + i*cells] != words[wordN].charAt(i)) {
+          return false;
+        }
+      }
+    }
+
+    if (dir == 3) {
+      if (Cell % cells + 1 < words[wordN].length()) {
+        return false;
+      }
+      for (int i = 0; i < words[wordN].length(); i++) {
+        if ( letters[Cell - i] != '0' && letters[Cell - i] != words[wordN].charAt(i)) {
+          return false;
+        }
+      }
+    }
+
+
+
+    return true;
+  }
+
+
+
+
+  public void generateOrder(int number) {
+    orderCell = new int[number][cells*cells];
+    orderDir = new int[number][4];
+
+    for (int n = 0; n< number; n++) {
+      for (int i = 0; i < 4; i++) {
+        orderDir[n][i] = i;
+      }
+      for (int i = 0; i < 4; i++) {
+        int rdm1 = PApplet.parseInt(random(0, 4));
+        int rdm2 = PApplet.parseInt(random(0, 4));
+        int help = orderDir[n][rdm1];
+        orderDir[n][rdm1] = orderDir[n][rdm2];
+        orderDir[n][rdm2] = help;
+      }
+      for (int i = 0; i < cells*cells; i++) {
+        orderCell[n][i] = i;
+      }
+      for (int i = 0; i < cells*cells; i++) {
+        int rdm1 = PApplet.parseInt(random(0, cells*cells));
+        int rdm2 = PApplet.parseInt(random(0, cells*cells));
+        int help = orderCell[n][rdm1];
+        orderCell[n][rdm1] = orderCell[n][rdm2];
+        orderCell[n][rdm2] = help;
+      }
+    }
+  }
+
+  public void printOrders() {
+    arrayPrinter arrayPrinter_1 = new arrayPrinter();
+    println("orderCell: ");
+    arrayPrinter_1.printTwoDArray(orderCell);
+
+    println("orderDir: ");
+    arrayPrinter_1.printTwoDArray(orderDir);
+  }
+}
+
+class wordsaladDraw {
+
+  wordsaladDraw() {
+  }
+
+  public void drawWordsalad (char[] letters, int size  ) {
+    drawGrid(size, PApplet.parseInt(sqrt(letters.length)));
+    drawLetters( letters, size, PApplet.parseInt(sqrt(letters.length)));
+  }
+
+  public void drawGrid(int size, int cells) {
+    strokeWeight(4);
+    noFill();
+    rect((height -size)/2, (width -size)/2, size, size);
+
+    for ( int i = 1; i < cells; i++) {
+      strokeWeight(0.4f);
+
+      line((height -size)/2 + i*(size/cells), (width -size)/2, (height -size)/2 + i*(size/cells), (width -size)/2+size);
+      line((height -size)/2, (width -size)/2 + i*(size/cells), (height -size)/2+size, (width -size)/2 + i*(size/cells));
+    }
+  }
+
+  public void drawLetters ( char[] letters, int size, int cells ) {
+    for (int r = 0; r < cells; r ++) {
+      for (int c = 0; c < cells; c ++) {
+        fill(0, 0, 0);
+
+        if ( letters[r*cells+c] != '0') {
+
+          textSize(size/cells*0.6f);
+          text(letters[r*cells+c], (height -size)/2 + c*(size/cells)+ (size/cells)/4, (width -size)/2 + r*(size/cells)+(size/cells)/1.3f);
+        }
+        textSize(size/cells*0.2f);
+        //text(r*cells+c, (height -size)/2 + c*(size/cells)+ (size/cells)/10, (width -size)/2 + r*(size/cells)+(size/cells)/1.1);
+      }
+    }
+  }
+}
+
+  public void settings() {  size(600,600); }
+  static public void main(String[] passedArgs) {
+    String[] appletArgs = new String[] { "wordSalad_1" };
+    if (passedArgs != null) {
+      PApplet.main(concat(appletArgs, passedArgs));
+    } else {
+      PApplet.main(appletArgs);
+    }
+  }
+}
