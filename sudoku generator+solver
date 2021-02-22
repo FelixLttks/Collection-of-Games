@@ -1,0 +1,416 @@
+import processing.core.*; 
+import processing.data.*; 
+import processing.event.*; 
+import processing.opengl.*; 
+
+import java.util.HashMap; 
+import java.util.ArrayList; 
+import java.io.File; 
+import java.io.BufferedReader; 
+import java.io.PrintWriter; 
+import java.io.InputStream; 
+import java.io.OutputStream; 
+import java.io.IOException; 
+
+public class Sudoku_6 extends PApplet {
+
+
+sudokuGridGenerator GridGenerator_1;
+sudokuDraw sudokuDraw_1;
+Array2D1D Array2D1D_1;
+sudokuSolver sudokuSolver_1;
+sudokuRemover sudokuRemover_1;
+
+//if you want so use the solver
+int[][] nums = new int[][]{
+  {6, 4, 0, 0, 0, 0, 3, 0, 0}, 
+  {9, 0, 0, 4, 7, 0, 1, 0, 0}, 
+  {7, 0, 0, 9, 5, 0, 0, 0, 0}, 
+
+  {0, 0, 0, 3, 9, 0, 0, 0, 0}, 
+  {0, 3, 0, 0, 0, 0, 0, 0, 2}, 
+  {0, 2, 0, 0, 0, 0, 8, 0, 4}, 
+
+  {0, 0, 6, 2, 0, 1, 0, 0, 0}, 
+  {0, 0, 0, 0, 0, 0, 6, 4, 5}, 
+  {4, 0, 8, 0, 0, 0, 0, 0, 0}};
+
+int[] numbers = new int[81];
+
+public void setup() {
+  
+  background(255);
+
+  GridGenerator_1 = new sudokuGridGenerator ();
+  sudokuDraw_1    = new sudokuDraw();
+  sudokuSolver_1  = new sudokuSolver();
+  Array2D1D_1     = new Array2D1D();
+  sudokuRemover_1 = new sudokuRemover();
+
+
+  mouseClicked();
+}
+
+
+public void draw() {
+}
+
+public void mouseClicked() {
+  println("");
+  println("[mouse clicked]");
+
+  //change here:
+
+  //new puzzle:
+  numbers = GridGenerator_1.generateGrid();   //generates a valid sudoku solution
+  numbers = sudokuRemover_1.removeNumbers(numbers);   //removes some numbers 
+  sudokuDraw_1.drawSudoku(numbers);   //draws the sudoku puzzle
+
+  //solves puzzle saved in nums[][]:
+  //numbers = sudokuSolver_1.solveNormal(Array2D1D_1.twoD_to_oneD(nums));   //solves the sudoku puzzle
+  //sudokuDraw_1.drawSudoku(numbers);   //draws the sudoku puzzle
+
+
+  //dont change:
+  println(">>finished");
+}
+
+public void keyPressed() {
+  if ( key == 32  ) {
+    println("");
+    println("[spacebar pressed]");
+
+    //change here:
+
+    //solves the current puzzle
+    numbers = sudokuSolver_1.solveNormal(numbers);   //solves the sudoku puzzle
+    sudokuDraw_1.drawSudoku(numbers);   //draws the sudoku puzzle
+
+    //dont change:
+    println(">>finished");
+  }
+}
+class Array2D1D {
+  Array2D1D() {
+  }
+
+  public int[] twoD_to_oneD(int[][] twoD) {    //Input: 2D array   Output: 1D array
+    int[] oneD = new int[81];
+    for (int row = 0; row < 9; row++) {
+      for ( int column = 0; column < 9; column ++) {
+        oneD[row*9+column] = twoD[row][column];
+      }
+    }
+    return oneD;
+  }
+
+  public int[][] oneD_to_twoD(int[] oneD) {    //Input: 1D array   Output: 2D array
+    int[][] twoD = new int[9][9];
+    for (int row = 0; row < 9; row++) {
+      for ( int column = 0; column < 9; column ++) {
+        twoD[row][column] = oneD[row*9+column];
+      }
+    }
+    return twoD;
+  }
+}
+class sudokuDraw {
+
+  sudokuDraw() {
+  }
+
+  public void drawSudoku(int[] numbers) {
+    drawGrid();
+    drawNumbers(numbers);
+  }
+
+
+  public void drawGrid() {
+    background(255);
+    strokeWeight(3);
+    noFill();
+    rect(102, 102, 396, 396);
+    line(234, 102, 234, 498);
+    line(366, 102, 366, 498);
+    line(102, 234, 498, 234);
+    line(102, 366, 498, 366);
+
+    strokeWeight(1);
+    for (int i = 0; i < 8; i++) {
+      line(146+i*44, 102, 146+i*44, 498);
+      line(102, 146+i*44, 498, 146+i*44);
+    }
+  }
+
+
+
+
+  public void drawNumbers(int[] nums) {
+
+    for ( int i = 0; i < nums.length; i++) {
+      fill(0, 0, 0);
+      textSize(30);
+      if ( nums[i] != 0) {
+        text(nums[i], 102+14+i%9*44, 102+35+((i-(i%9))/9)*44);
+      }
+    }
+  }
+}
+class sudokuGridGenerator {
+
+  int [] solutionNumbers = new int[81];
+  int [][] rdmNumbers    = new int[81][9];
+
+  sudokuGridGenerator() {
+  }
+
+  public int[] generateGrid() { //return array of 81 
+
+    println(">generating a Grid");
+    for ( int i = 0; i < 81; i++) {
+      solutionNumbers[i] = 0;
+
+      rdmNumbers[i] = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9};  
+      for (int j = 0; j < 10; j++) {   //shuffel rdm
+        int rdm1 = PApplet.parseInt(random(0, 9));
+        int rdm2 = PApplet.parseInt(random(0, 9));
+        int h1 =  rdmNumbers[i][rdm1];
+        rdmNumbers[i][rdm1] =  rdmNumbers[i][rdm2];
+        rdmNumbers[i][rdm2] = h1;
+      }
+    }
+
+
+
+    int Cell = 0;
+    int ca = 1;
+
+
+    int line = 0;
+    while (Cell < 81) {
+      line++;
+      int num = findLowestPossibleNumber( Cell, solutionNumbers[Cell]);
+
+      if ( num == 0) {
+        println ( "line "+line + ": "+Cell +": ERROR > back > " + (Cell-1));
+        solutionNumbers[Cell] = 0;
+
+        ca = -1;
+      } else {
+        solutionNumbers[Cell] = num;
+        ca = 1;
+        println ( "line "+line + "| "+Cell+ ": " + solutionNumbers[Cell]+" > " +rdmNumbers[Cell][solutionNumbers[Cell]-1]);
+      }
+      Cell += ca;
+    }
+
+    println("ERRORS: "+(line-81)/2);
+    int[] numbers = new int[81];
+    for ( int i = 0; i < 81; i++) {
+      numbers[i] = rdmNumbers[i][solutionNumbers[i]-1];
+    }
+    return numbers;
+  }
+
+
+
+
+
+  public boolean isPossibleNumber( int I, int N) {
+
+    for (int r = 0; r < 9; r++) {
+      int pos = I%9+r*9;
+      if (solutionNumbers[pos] != 0) {
+        if (rdmNumbers[pos][solutionNumbers[pos]-1] == N) {
+          return false;
+        }
+      }
+    }
+    for (int c = 0; c < 9; c++) {
+      int pos = I-(I%9)+c;
+
+      if (solutionNumbers[pos] != 0) {
+        if (rdmNumbers[pos][solutionNumbers[pos]-1] == N) {
+          return false;
+        }
+      }
+    }
+
+
+
+
+    for (int r = 0; r <  27; r+= 9) {
+      for ( int c = 0; c < 3; c++) {
+        int pos = I-(I%3)%9;
+        pos = pos-(pos-pos%9)%27+r+c;
+        if (solutionNumbers[pos] != 0) {
+          if (rdmNumbers[pos][solutionNumbers[pos]-1] == N) {
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
+  }
+
+  public int findLowestPossibleNumber( int C, int lN) {
+
+
+    for (int n = lN; n< 9; n++) {
+      if (isPossibleNumber(C, rdmNumbers[C][n]) == true) {
+        return n+1;
+      }
+    }
+    return 0;
+  }
+}
+class sudokuRemover {
+
+  int[] Numbers;
+  int[] cellsToTest;
+
+
+  sudokuRemover() {
+  }
+
+
+  public int[] removeNumbers( int[] fullNumbers) {
+    println(">removing numbers");
+    Numbers = fullNumbers;
+    cellsToTest = new int[81];
+    for (int i = 0; i < 81; i++) {
+      cellsToTest[i] = i;
+    }
+    int errors = 0;
+
+    while (cellsToTest.length > 0) {
+
+      int randomCell = PApplet.parseInt(random(0, cellsToTest.length));
+      int Number = Numbers[cellsToTest[randomCell]];
+      Numbers[cellsToTest[randomCell]] = 0;
+      sudokuSolver sudokuSolver_2 = new sudokuSolver();
+      int[] solvedNumbers = sudokuSolver_2.solveWithout(Numbers,cellsToTest[randomCell], Number);
+      
+      if ( solvedNumbers.length != 0) {
+        Numbers[cellsToTest[randomCell]] = Number;
+        println(cellsToTest[randomCell] + ": cant remove");
+        errors++;
+      }
+      else{
+        println(cellsToTest[randomCell]+": removed");
+      }
+      cellsToTest[randomCell] = cellsToTest[cellsToTest.length-1];
+      cellsToTest = expand(cellsToTest, cellsToTest.length-1);
+    }
+    println("ERRORS: "+errors);
+    return Numbers;
+  }
+}
+class sudokuSolver {
+  int[] givenNumbers;
+  int [] solutionNumbers;
+  int woCell, woNumber;
+  sudokuSolver() {
+  }
+
+  public int [] solveWithout(int[] new_givenNumbers, int new_woCell, int new_woNumber) {  //withoutCell
+    woCell = new_woCell;
+    woNumber = new_woNumber;
+    return solve(new_givenNumbers);
+  }
+
+  public int [] solveNormal(int[] new_givenNumbers) {
+    println(">solving sudoku");
+    woCell = 0;
+    woNumber = 0;
+    int[] solution = solve(new_givenNumbers);
+    if(solution.length == 0){
+      println("ERROR: no solution possible");
+    }
+    return solution;
+  }
+
+  public int[] solve (int[] new_givenNumbers) {
+    solutionNumbers = new int[81];
+    givenNumbers = new_givenNumbers;
+
+    int cCell = 0;   //current Cell
+    int dCell = 1;   //direchtion of Cell movement (-1 or 1)  
+
+    while (cCell < 81) {
+      //println(cCell);
+      if (cCell < 0) {
+        int[] noSolution = new int[0];
+        return noSolution;
+      }
+      if (givenNumbers[cCell] == 0) {
+        int lowestPossibleNumber = findLowstPossibleNumber( cCell, solutionNumbers[cCell]);
+        if (lowestPossibleNumber == 0) {
+          solutionNumbers[cCell] = 0;
+          dCell = -1;
+          //println ( "for " + cCell + " no solution");
+        } else {
+          solutionNumbers[cCell] = lowestPossibleNumber;
+          dCell = 1;
+          //println ( "for " + cCell + " solution: " + solutionNumbers[cCell]);
+        }
+      }
+      cCell += dCell;
+    }
+    for (int i = 0; i < 81; i++) {
+      solutionNumbers[i] = solutionNumbers[i] + givenNumbers[i];
+    }
+
+    return solutionNumbers;
+  }
+
+  public int findLowstPossibleNumber( int Cell, int minimum) {
+    //println("min.: "+minimum);
+    for (int n = minimum+1; n < 10; n++) {
+      if ( possibleNumber(Cell, n) == true) {
+        return n;
+      }
+    }
+    return 0;
+  }
+
+  public boolean possibleNumber ( int Cell, int Number) {
+    if ((Cell == woCell) && (Number == woNumber)) {
+      return false;
+    }
+
+    for (int r = 0; r < 9; r++) {
+      if ((givenNumbers[Cell%9+r*9] == Number) || (solutionNumbers[Cell%9+r*9] == Number)) {
+        return false;
+      }
+    }
+    for (int c = 0; c < 9; c++) {
+      if ((givenNumbers[Cell-(Cell%9)+c] == Number) || (solutionNumbers[Cell-(Cell%9)+c] == Number)) {
+        return false;
+      }
+    }
+    int s = Cell-(Cell%3)%9;
+    s = s-(s-s%9)%27;
+
+
+    for (int r = 0; r <  27; r+= 9) {
+      for ( int c = 0; c < 3; c++) {
+        if ((givenNumbers[s+r+c] == Number) || (solutionNumbers[s+r+c] == Number)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+}
+  public void settings() {  size(600, 600); }
+  static public void main(String[] passedArgs) {
+    String[] appletArgs = new String[] { "Sudoku_6" };
+    if (passedArgs != null) {
+      PApplet.main(concat(appletArgs, passedArgs));
+    } else {
+      PApplet.main(appletArgs);
+    }
+  }
+}
