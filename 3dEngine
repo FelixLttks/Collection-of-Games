@@ -1,0 +1,222 @@
+import processing.core.*; 
+import processing.data.*; 
+import processing.event.*; 
+import processing.opengl.*; 
+
+import java.util.HashMap; 
+import java.util.ArrayList; 
+import java.io.File; 
+import java.io.BufferedReader; 
+import java.io.PrintWriter; 
+import java.io.InputStream; 
+import java.io.OutputStream; 
+import java.io.IOException; 
+
+public class sketch_3d_3 extends PApplet {
+
+float xa = 1;
+float ya = 0.3f;
+float za = 0.6f;
+
+int size = 100;
+
+//int[][] constructData = new int[][] {{0, 100, 100, 100},{0, 100, -100, 100},{0, -100, -100, 100},{200, -100, -100, 100},{150, 50, 150, 50}};
+int[][] constructData = new int[][] {{0, 0, 0, 30},{60, 00, 0, 30},{120, 00, 0, 30},{-60, 00, 0, 30},{-120, 00, 0, 30},{0, 60, 0, 30},{120, 60, 0, 30},{120, 120, 0, 30}};
+
+cube cube_1;
+cube cube_2;
+
+construct construct_1;
+
+
+
+public void setup() {
+  stroke(0);
+  
+  background(255);
+  
+  construct_1 = new construct(constructData);
+
+  construct_1.rotate(0,-45);
+  construct_1.rotate(1,-45);
+  construct_1.rotate(2,-90);
+
+
+}
+
+
+
+public void draw() {
+  background(255);
+  translate(300, 300);
+
+  construct_1.draw();
+  construct_1.rotate(0,0.77777f);
+  construct_1.rotate(1,2);
+  construct_1.rotate(2,0.5f);
+
+}
+class construct{
+  
+  cube cubes[];
+  
+  construct(int[][] data){
+    cubes = new cube[data.length];
+    for(int i = 0; i < data.length ; i++){
+      cubes[i] = new cube(data[i][0],data[i][1],data[i][2],data[i][3]);
+    }
+  }
+  
+  public void draw(){
+    
+    for(int i = 0; i < cubes.length; i ++){
+      for(int j = 0; j < cubes.length - i -1; j++){
+        if(cubes[j].getZ() > cubes[j+1].getZ()){
+          cube help = cubes[j];
+          cubes[j] = cubes[j+1];
+          cubes[j+1] = help;
+        }
+      }
+    }
+    
+    for(int i = 0; i < cubes.length ; i++){
+      cubes[i].draw();
+    }
+  }
+  
+  public void rotate(int axis, float a) {
+    for (int i = 0; i < cubes.length; i++) {
+      cubes[i].rotate(axis, a);
+    }
+  }
+  
+}
+class cube {
+  float x, y, z;
+  int size;
+  point[] points = new point[8];
+
+  int[][] pointsData = new int[][] {{2, 4, 8, 3, 5, 7}, {1, 3, 7, 4, 6, 8}, {2, 4, 6, 1, 5, 7}, {1, 3, 5, 2, 6, 8}, {4, 6, 8, 3, 7, 1}, {3, 5, 7, 4, 8, 2}, {2, 6, 8, 3, 5, 1}, {1, 5, 7, 4, 6, 2}};
+
+  cube(int new_x, int new_y, int new_z, int size) {
+    x = new_x;
+    y = new_y;
+    z = new_z;
+
+    points[0] = new point(   PApplet.parseInt(size+x), PApplet.parseInt(size+y), PApplet.parseInt(size+z));
+    points[1] = new point(   PApplet.parseInt(size+x), PApplet.parseInt(-1*size+y), PApplet.parseInt(size+z));
+    points[2] = new point(PApplet.parseInt(-1*size+x), PApplet.parseInt(-1*size+y), PApplet.parseInt(size+z));
+    points[3] = new point(PApplet.parseInt(-1*size+x), PApplet.parseInt(size+y), PApplet.parseInt(size+z));
+    points[4] = new point(PApplet.parseInt(-1*size+x),PApplet.parseInt( size+y), PApplet.parseInt(-1*size+z));
+    points[5] = new point(PApplet.parseInt(-1*size+x), PApplet.parseInt(-1*size+y), PApplet.parseInt(-1*size+z));
+    points[6] = new point(   PApplet.parseInt(size+x), PApplet.parseInt(-1*size+y), PApplet.parseInt(-1*size+z));
+    points[7] = new point(   PApplet.parseInt(size+x), PApplet.parseInt(size+y), PApplet.parseInt(-1*size+z));
+  }
+  
+  public float getZ(){
+    return z;
+  }
+
+  public void draw() {
+    int firstPoint = 0;
+    float nearestZ = -10000;
+
+    for (int i = 0; i < 8; i++) {
+      if (points[i].getZ() > nearestZ ) {
+        nearestZ = points[i].getZ();
+        firstPoint = i;
+      }
+    }
+    
+    //circle(points[firstPoint].getX(), points[firstPoint].getY(),20);
+
+    fill(150);
+    stroke(0);
+    quad(points[firstPoint].getX(), points[firstPoint].getY(), points[pointsData[firstPoint][0]-1].getX(), points[pointsData[firstPoint][0]-1].getY(), points[pointsData[firstPoint][3]-1].getX(), points[pointsData[firstPoint][3]-1].getY(), points[pointsData[firstPoint][1]-1].getX(), points[pointsData[firstPoint][1]-1].getY());
+    quad(points[firstPoint].getX(), points[firstPoint].getY(), points[pointsData[firstPoint][1]-1].getX(), points[pointsData[firstPoint][1]-1].getY(), points[pointsData[firstPoint][4]-1].getX(), points[pointsData[firstPoint][4]-1].getY(), points[pointsData[firstPoint][2]-1].getX(), points[pointsData[firstPoint][2]-1].getY());
+    quad(points[firstPoint].getX(), points[firstPoint].getY(), points[pointsData[firstPoint][2]-1].getX(), points[pointsData[firstPoint][2]-1].getY(), points[pointsData[firstPoint][5]-1].getX(), points[pointsData[firstPoint][5]-1].getY(), points[pointsData[firstPoint][0]-1].getX(), points[pointsData[firstPoint][0]-1].getY());
+  }
+
+  public void rotate(int axis, float a) {
+    for (int i = 0; i < 8; i++) {
+      points[i].rotate(axis, a);
+    }
+    
+    if(axis == 0){   //x
+      float y1 = y;
+      y = y * cos(radians(a)) - z * sin(radians(a));
+      z = z * cos(radians(a)) + y1 * sin(radians(a));
+    }
+    if(axis == 1){   //y
+      float z1 = z;
+      z = z * cos(radians(a)) - x * sin(radians(a));
+      x = x * cos(radians(a)) + z1 * sin(radians(a));
+    }
+    if(axis == 2){   //z
+      float x1 = x;
+      x = x * cos(radians(a)) - y * sin(radians(a));
+      y = y * cos(radians(a)) + x1 * sin(radians(a));
+    }
+  }
+}
+class point{
+  
+  float x,y,z;
+  
+  point(int new_x, int new_y, int new_z){
+    x = new_x;
+    y = new_y;
+    z = new_z;
+  }
+  
+  public void setX(int new_x ){
+    x = new_x;
+  }
+  public void setY(int new_y ){
+    y = new_y;
+  }
+  public void setZ(int new_z ){
+    z = new_z;
+  }
+  
+  
+  public float getX(){
+    return x;
+  }
+  public float getY(){
+    return y;
+  }
+  public float getZ(){
+    return z;
+  }
+  
+  
+  public void rotate(int axis , float a){
+    if(axis == 0){   //x
+      float y1 = y;
+      y = y * cos(radians(a)) - z * sin(radians(a));
+      z = z * cos(radians(a)) + y1 * sin(radians(a));
+    }
+    if(axis == 1){   //y
+      float z1 = z;
+      z = z * cos(radians(a)) - x * sin(radians(a));
+      x = x * cos(radians(a)) + z1 * sin(radians(a));
+    }
+    if(axis == 2){   //z
+      float x1 = x;
+      x = x * cos(radians(a)) - y * sin(radians(a));
+      y = y * cos(radians(a)) + x1 * sin(radians(a));
+    }
+  }
+  
+}
+  public void settings() {  size(600, 600); }
+  static public void main(String[] passedArgs) {
+    String[] appletArgs = new String[] { "sketch_3d_3" };
+    if (passedArgs != null) {
+      PApplet.main(concat(appletArgs, passedArgs));
+    } else {
+      PApplet.main(appletArgs);
+    }
+  }
+}
